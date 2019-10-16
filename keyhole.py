@@ -31,11 +31,27 @@ print("")
 print("")
 
 # The file containing the saved usernames, accounts, and passwords
-data_file = ".data.json"
+DATA_FILE = ".data.json"
 
-def prompt_password():
-    password = getpass.getpass()
-    return password
+def prompt_password(new=False):
+    password_1 = ""
+    password_2 = ""
+
+    if new == True:
+        while True:
+            password_1 = getpass.getpass(prompt='Enter a new password: ', stream=None)
+            password_2 = getpass.getpass(prompt='Confirm password: ', stream=None)
+            print("")
+            if len(password_1) > 0 and password_1 == password_2:
+                break
+            else:
+                print("The passwords didn't match...")
+                print("")
+        return password_1
+    else:
+        password_1 = getpass.getpass()
+        print("")
+        return password_1
 
 def create_user(program_data, username=""):
     do_create = input("Username doesn't exist. Create one? [Y/n] ")
@@ -54,44 +70,11 @@ def create_user(program_data, username=""):
         print("Exiting...")
         exit()
 
+    password = prompt_password(new=True)
+
     # Add the new user to the dictionary mapping it to an empty dictionary
-    program_data[username] = {}
+    program_data[username] = {"this_program": password} # TODO: This needs to be encrypted
     return username
-
-# Load the json data file and place it in the program_data dictionary 
-def load_data():
-    program_data = {}
-
-    # This will load the file or any backups if something when wrong
-    if os.path.exists(data_file):
-        with open(data_file) as json_data_file:
-            program_data = json.load(json_data_file)
-    elif os.path.exists(data_file + ".new"):
-        with open(data_file + ".new") as json_data_file:
-            program_data = json.load(json_data_file)
-    elif os.path.exists(data_file + ".bak"):
-        with open(data_file + ".bak") as json_data_file:
-            program_data = json.load(json_data_file)
-    return program_data
-
-def save_data(program_data):
-    # Convert the program_data to json
-    content = json.dumps(program_data)
-
-    # Carefully overwrite the old data. This is so it can be preserved if
-    # the program closes before saved.
-
-    # Write the new data to a .new file to preserve the old 
-    f = open(data_file + ".new", "w")
-    f.write(content)   
-
-    # Rename the old file as a backup
-    if os.path.exists(data_file):
-        os.rename(data_file, data_file + ".bak")
-
-    # Make the .new file as the new base
-    os.rename(data_file + ".new", data_file)
-
 
 def prompt_credentials(program_data):
     name = input("Username: ")
@@ -99,14 +82,119 @@ def prompt_credentials(program_data):
         print("Invalid username.")
         exit()
     if name in program_data.keys():
-        return prompt_password()
+        prompt_password() # TODO I need to see if the password checks out
+        return name
    
     name = create_user(program_data, name)
-    return prompt_password()
+    return name
+
+def list_accounts(username, program_data):
+    accounts = list(program_data[username])
+    print("")
+    for num, acnt in enumerate(accounts):
+        print(f"\t{num + 1}) {acnt}") 
+    print("")
+
+def select_account_with_prompt(username, program_data, prompt):
+    list_accounts(username, program_data)
+    accounts = list(program_data[username])
+    num_options = len(accounts) + 1
+    selection = ""
+    invalid = True
+    while invalid:
+        selection = input(prompt)
+        if selection.isdigit() == False:
+            print("Invalid selection.")
+        elif int(selection) < 1 or int(selection) > num_options:
+            print("Invalid selection.")
+        else:
+            invalid = False
+    return int(selection) - 1
+
+def view_account_pass(username, program_data):
+    prompt = "Enter the number of the account for the password you'd like to see: "
+    selection = select_account_with_prompt(username, program_data, prompt) 
+    accounts = list(program_data[username])
+    display_decaying_pass(program_data[username][accounts[selection]]) 
+
+def add_account(username, program_data):
+    print("")
+    account = input("Enter the name of the account: ")
+    password = prompt_password(new=True)
+    program_data[username][account] = password # TODO: Needs to be encrypted 
+    print("Account added!")
+    print("")
+
+def update_account_pass(username, program_data):
+    prompt = "Enter the number of the account for the password you'd like to update: "  
+    selection = select_account_with_prompt(username, program_data, prompt)
+    new_pass = prompt_password(new=True)
+    accounts = list(program_data[username])
+    program_data[username][accounts[selection]] = new_pass 
+    print("Password updated!")
+    print("")
+
+def remove_account(username, program_data):
+    prompt = "Enter the number of the account you'd like to delete: "   
+    selection = select_account_with_prompt(username, program_data, prompt) 
+    accounts = list(program_data[username])
+    del program_data[username][accounts[selection]]
+    print("Account removed!")
+    print("")
+
+def get_action(username, program_data):
+    num_options = 5  
+   
+    print("")
+    print("Your accounts:")
+    list_accounts(username, program_data)
+
+    print("What would you like to do?") 
+    print("")
+    print("\t1) View the password of an account?")
+    print("\t2) Add a new account and password?")
+    print("\t3) Update the password of an account?")
+    print("\t4) Remove account and password?")
+    print("\t5) Exit")
+    print("")
+
+    selection = ""
+    invalid = True
+    while invalid:
+        selection = input("Enter the number of your selection: ")
+        if selection.isdigit() == False:
+            print("Invalid selection.")
+        elif int(selection) < 1 or int(selection) > num_options:
+            print("Invalid selection.")
+        else:
+            invalid = False
+    return int(selection)
+
+def do_action(action, username, program_data):
+    if action == 1:
+        # View an account password
+        view_account_pass(username, program_data)
+    elif action == 2:
+        # Add a new account and password
+        add_account(username, program_data)
+        pass
+    elif action == 3:
+        # Update an account's password
+        update_account_pass(username, program_data) 
+        pass
+    elif action == 4:
+        # Remove an account and password
+        remove_account(username, program_data)
+        pass
+    else: 
+        return False
+    return True
+
 
 
 def display_decaying_pass(password):
     # After the password is obtained, show it briefly and cross it out
+    print("")
     print(password, end='\r')
     time.sleep(2)
     
@@ -128,6 +216,43 @@ def display_decaying_pass(password):
        sys.stdout.write("\033[K")
 
 
+# Load the json data file and place it in the program_data dictionary 
+def load_data():
+    program_data = {}
+
+    # This will load the file or any backups if something when wrong
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE) as json_DATA_FILE:
+            program_data = json.load(json_DATA_FILE)
+    elif os.path.exists(DATA_FILE + ".new"):
+        with open(DATA_FILE + ".new") as json_DATA_FILE:
+            program_data = json.load(json_DATA_FILE)
+    elif os.path.exists(DATA_FILE + ".bak"):
+        with open(DATA_FILE + ".bak") as json_DATA_FILE:
+            program_data = json.load(json_DATA_FILE)
+    return program_data
+
+def save_data(program_data):
+    # Convert the program_data to json
+    content = json.dumps(program_data)
+
+    # Carefully overwrite the old data. This is so it can be preserved if
+    # the program closes before saved.
+
+    # Write the new data to a .new file to preserve the old 
+    f = open(DATA_FILE + ".new", "w")
+    f.write(content)   
+
+    # Rename the old file as a backup
+    if os.path.exists(DATA_FILE):
+        os.rename(DATA_FILE, DATA_FILE + ".bak")
+
+    # Make the .new file as the new base
+    os.rename(DATA_FILE + ".new", DATA_FILE)
+
+    # Remove the backup
+    os.remove(DATA_FILE + ".bak")
+
 
 # Display password accounts
 # Prompt user for which one to return the password for
@@ -136,13 +261,22 @@ def main():
     # program_data maps usernames to dictionaries mapping accounts to encrypted passwords
     # The saved program data file will be loaded into this on startup as well.
     program_data = load_data() 
-    password = prompt_credentials(program_data)
-    display_decaying_pass(password)
-    save_data(program_data)
+    username = prompt_credentials(program_data)
+    print(f"Welcome, {username}.")  
+
+    repeat = True
+    while repeat:
+        print("*********************************************************")
+        action = get_action(username, program_data)
+
+        # Perform the action
+        repeat = do_action(action, username, program_data)
+        save_data(program_data)
+
+    print("")
+    print("Locking up...")
+    print("Until next time!")
 
 if __name__ == '__main__':
     main()
-
-
-
 
