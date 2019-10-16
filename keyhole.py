@@ -17,21 +17,24 @@ import json
 
 print("")
 print("")
-print("********************************************************")
-print("* |   /                         _____                  *")
-print("* |  /                         /*****\\                 *")
-print("* | /   x----- \\    / |     | /*******\\ |     x-----   *")
-print("* |/    |       \\  /  |     | \\*******/ |     |        *")
-print("* |\\    |__      \\/   |_____|  \\*****/  |     |__      *")
-print("* | \\   |        ||   |     |   |***|   |     |        *")
-print("* |  \\  |        ||   |     |   |***|   |     |        *")
-print("* |   \\ x-----   ||   |     |   \\***/   |____ x-----   *")
-print("********************************************************")
+print("*******************************************************")
+print("* |   /                         _____                 *")
+print("* |  /                         /*****\\                *")
+print("* | /   x----- \\    / |     | /*******\\ |     x-----  *")
+print("* |/    |       \\  /  |     | \\*******/ |     |       *")
+print("* |\\    |__      \\/   |_____|  \\*****/  |     |__     *")
+print("* | \\   |        ||   |     |   |***|   |     |       *")
+print("* |  \\  |        ||   |     |   |***|   |     |       *")
+print("* |   \\ x-----   ||   |     |   \\***/   |____ x-----  *")
+print("*                                                     *")
+print("*******************************************************")
 print("")
 print("")
 
 # The file containing the saved usernames, accounts, and passwords
 DATA_FILE = ".data.json"
+# program_data maps usernames to dictionaries mapping accounts to encrypted passwords
+program_data = {}
 
 def prompt_password(new=False):
     password_1 = ""
@@ -53,7 +56,8 @@ def prompt_password(new=False):
         print("")
         return password_1
 
-def create_user(program_data, username=""):
+def create_user(username=""):
+    global program_data 
     do_create = input("Username doesn't exist. Create one? [Y/n] ")
     if do_create == 'Y' or do_create == 'y':
         ans = input(f"Is the name '{username}' okay? [Y/n] ")
@@ -76,7 +80,8 @@ def create_user(program_data, username=""):
     program_data[username] = {"this_program": password} # TODO: This needs to be encrypted
     return username
 
-def prompt_credentials(program_data):
+def prompt_credentials():
+    global program_data 
     name = input("Username: ")
     if len(name) == 0:
         print("Invalid username.")
@@ -85,18 +90,20 @@ def prompt_credentials(program_data):
         prompt_password() # TODO I need to see if the password checks out
         return name
    
-    name = create_user(program_data, name)
+    name = create_user(name)
     return name
 
-def list_accounts(username, program_data):
+def list_accounts(username):
+    global program_data
     accounts = list(program_data[username])
     print("")
     for num, acnt in enumerate(accounts):
         print(f"\t{num + 1}) {acnt}") 
     print("")
 
-def select_account_with_prompt(username, program_data, prompt):
-    list_accounts(username, program_data)
+def select_account_with_prompt(username, prompt):
+    global program_data
+    list_accounts(username)
     accounts = list(program_data[username])
     num_options = len(accounts) + 1
     selection = ""
@@ -111,13 +118,15 @@ def select_account_with_prompt(username, program_data, prompt):
             invalid = False
     return int(selection) - 1
 
-def view_account_pass(username, program_data):
+def view_account_pass(username):
+    global program_data
     prompt = "Enter the number of the account for the password you'd like to see: "
-    selection = select_account_with_prompt(username, program_data, prompt) 
+    selection = select_account_with_prompt(username, prompt) 
     accounts = list(program_data[username])
     display_decaying_pass(program_data[username][accounts[selection]]) 
 
-def add_account(username, program_data):
+def add_account(username):
+    global program_data
     print("")
     account = input("Enter the name of the account: ")
     password = prompt_password(new=True)
@@ -125,29 +134,32 @@ def add_account(username, program_data):
     print("Account added!")
     print("")
 
-def update_account_pass(username, program_data):
+def update_account_pass(username):
+    global program_data
     prompt = "Enter the number of the account for the password you'd like to update: "  
-    selection = select_account_with_prompt(username, program_data, prompt)
+    selection = select_account_with_prompt(username, prompt)
     new_pass = prompt_password(new=True)
     accounts = list(program_data[username])
     program_data[username][accounts[selection]] = new_pass 
     print("Password updated!")
     print("")
 
-def remove_account(username, program_data):
+def remove_account(username):
+    global program_data
     prompt = "Enter the number of the account you'd like to delete: "   
-    selection = select_account_with_prompt(username, program_data, prompt) 
+    selection = select_account_with_prompt(username, prompt) 
     accounts = list(program_data[username])
     del program_data[username][accounts[selection]]
     print("Account removed!")
     print("")
 
-def get_action(username, program_data):
+def get_action(username):
+    global program_data
     num_options = 5  
    
     print("")
     print("Your accounts:")
-    list_accounts(username, program_data)
+    list_accounts(username)
 
     print("What would you like to do?") 
     print("")
@@ -170,21 +182,22 @@ def get_action(username, program_data):
             invalid = False
     return int(selection)
 
-def do_action(action, username, program_data):
+def do_action(action, username):
+    global program_data
     if action == 1:
         # View an account password
-        view_account_pass(username, program_data)
+        view_account_pass(username)
     elif action == 2:
         # Add a new account and password
-        add_account(username, program_data)
+        add_account(username)
         pass
     elif action == 3:
         # Update an account's password
-        update_account_pass(username, program_data) 
+        update_account_pass(username) 
         pass
     elif action == 4:
         # Remove an account and password
-        remove_account(username, program_data)
+        remove_account(username)
         pass
     else: 
         return False
@@ -218,7 +231,7 @@ def display_decaying_pass(password):
 
 # Load the json data file and place it in the program_data dictionary 
 def load_data():
-    program_data = {}
+    global program_data
 
     # This will load the file or any backups if something when wrong
     if os.path.exists(DATA_FILE):
@@ -230,9 +243,9 @@ def load_data():
     elif os.path.exists(DATA_FILE + ".bak"):
         with open(DATA_FILE + ".bak") as json_DATA_FILE:
             program_data = json.load(json_DATA_FILE)
-    return program_data
 
-def save_data(program_data):
+def save_data():
+    global program_data
     # Convert the program_data to json
     content = json.dumps(program_data)
 
@@ -251,27 +264,27 @@ def save_data(program_data):
     os.rename(DATA_FILE + ".new", DATA_FILE)
 
     # Remove the backup
-    os.remove(DATA_FILE + ".bak")
+    if os.path.exists(DATA_FILE + ".bak"):
+        os.remove(DATA_FILE + ".bak")
 
 
 # Display password accounts
 # Prompt user for which one to return the password for
 # TODO: I need to have a timeout if there isn't user input for a bit
 def main():
-    # program_data maps usernames to dictionaries mapping accounts to encrypted passwords
     # The saved program data file will be loaded into this on startup as well.
-    program_data = load_data() 
-    username = prompt_credentials(program_data)
+    load_data() 
+    username = prompt_credentials()
     print(f"Welcome, {username}.")  
 
     repeat = True
     while repeat:
-        print("*********************************************************")
-        action = get_action(username, program_data)
+        print("********************************************************")
+        action = get_action(username)
 
         # Perform the action
-        repeat = do_action(action, username, program_data)
-        save_data(program_data)
+        repeat = do_action(action, username)
+        save_data()
 
     print("")
     print("Locking up...")
@@ -280,3 +293,14 @@ def main():
 if __name__ == '__main__':
     main()
 
+
+# I need to generate a random salt, add it to the password, and hash it.
+# The hashed password + salt is what I need to store along with the salt.
+# I could store this like salt:hasedPasswordPlusSalt
+
+# When logging in, I need to grab the stored salt for that username,
+# add it to the inputted password, hash it, and see if it matches the stored
+# hash. If so, access can be granted.
+
+# How do I generate the random salt?
+# What should I use for the hasing? bcrypt?
