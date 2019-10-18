@@ -4,6 +4,9 @@
 # nearly impossible to remember them all. It almost seems like the password
 # recovery function of a website ends up being my password solution. I think
 # that's kind of silly. This is a program that will help me remedy this.
+# Written by Daniel Hornberger
+# 10/18/2019
+# v0.1
 
 import getpass
 import os.path
@@ -13,8 +16,6 @@ import random
 import time
 import json
 import bcrypt
-#import pyAesCrypt
-#import io
 import base64
 import os
 from cryptography.fernet import Fernet
@@ -56,9 +57,12 @@ def hash_password(password):
     salt = bcrypt.gensalt(rounds=16)
     # Pass the byte representation of the password
     hashed_pass = bcrypt.hashpw(password.encode(), salt)
-    return str(hashed_pass)
+    # For json serialization, it can't be bytes type, so I decode it here
+    # The salt will also be used for generating the key to encrypt/decrypt the 
+    # program data
+    return hashed_pass.decode('utf-8'), salt.decode('utf-8') 
 
-def prompt_password(new=False):
+def prompt_password(new=False, username=""):
     password = ""
     conf_pass = ""
 
@@ -75,10 +79,14 @@ def prompt_password(new=False):
         return password
     else:
         password = getpass.getpass()
-        hashed_pass = hash_password(password)
-        if bcrypt.checkpw(password, hashed_pass.encode()) != True:
+
+        # Check if the hash of the inputted password matches the saved hash for the user
+        if bcrypt.checkpw(password.encode(), login_data[username][0].encode()) != True:
             print("Invalid password.")
             exit()
+        master_pass = password
+        print("")
+        print("Access granted...")
         print("")
         return password
 
@@ -104,27 +112,22 @@ def create_user(username=""):
 
     password = prompt_password(new=True)
     master_pass = password
-    hashed_pass = hash_password(password)
-    # The salt needs to be stored for encrypting and decrypting program data with Fernet 
-    salt = os.urandom(16)
+    hashed_pass, salt = hash_password(password)
     
     # Add the new user to the dictionary mapping it to the hashed password and the salt
     # that will be used later for decrypting the data.
-    # This puts the salt in a different file than the encrypted program data
-    login_data[username] = [hashed_pass, salt]
-    print(f"Hashed pass to be saved: {hashed_pass}")
-    # Save the password to the file to be encrypted as well 
-    #program_data[username] = {"this_program": password} 
+    login_data[username] = [hashed_pass, salt] 
     return username
 
 def prompt_credentials():
-    global login_data 
+    global login_data
+    global master_pass
     name = input("Username: ")
     if len(name) == 0:
         print("Invalid username.")
         exit()
     if name in login_data.keys():
-        master_pass = prompt_password() 
+        master_pass = prompt_password(username=name) 
         return name
    
     name = create_user(name)
@@ -161,36 +164,56 @@ def view_account_pass(username):
     selection = select_account_with_prompt(username, prompt) 
     accounts = list(program_data[username])
     display_decaying_pass(program_data[username][accounts[selection]]) 
-    print("Success so far!")
-
 
 def add_account(username):
     global program_data
     print("")
     account = input("Enter the name of the account: ")
     password = prompt_password(new=True)
-    program_data[username][account] = password # TODO: Needs to be encrypted 
+    program_data[username][account] = password 
     print("Account added!")
     print("")
 
 def update_account_pass(username):
     global program_data
+    global login_data
+    global master_pass
     prompt = "Enter the number of the account for the password you'd like to update: "  
-    selection = select_account_with_prompt(username, prompt)
+    acnt_index = select_account_with_prompt(username, prompt)
     new_pass = prompt_password(new=True)
     accounts = list(program_data[username])
-    program_data[username][accounts[selection]] = new_pass 
+    program_data[username][accounts[acnt_index]] = new_pass
+    if acnt_index == 0:
+        master_pass = new_pass 
+        hashed_pass, salt = hash_password(new_pass)
+        login_data[username] = [hashed_pass, salt]
+        program_data[username]["this_program"] = new_pass
+    
     print("Password updated!")
     print("")
 
 def remove_account(username):
     global program_data
+    user_account_deleted = False
     prompt = "Enter the number of the account you'd like to delete: "   
-    selection = select_account_with_prompt(username, prompt) 
+    acnt_index = select_account_with_prompt(username, prompt)
+    # Delete account in this program
+    if acnt_index == 0:
+        ans = input("This will delete your account in this program and remove all saved information. Proceed? [Y/n] ")
+        if ans == "Y" or ans == "y":
+            print("Deleting your account and all information associated with it...")
+            del program_data[username]
+            del login_data[username]
+            print("Exiting...")
+            user_account_deleted = True
+            return user_account_deleted 
+        else:
+            return user_account_deleted
     accounts = list(program_data[username])
-    del program_data[username][accounts[selection]]
+    del program_data[username][accounts[acnt_index]]
     print("Account removed!")
     print("")
+    return user_account_deleted
 
 def get_action(username):
     global program_data
@@ -205,7 +228,7 @@ def get_action(username):
     print("\t1) View the password of an account?")
     print("\t2) Add a new account and password?")
     print("\t3) Update the password of an account?")
-    print("\t4) Remove account and password?")
+    print("\t4) Remove an account and password?")
     print("\t5) Exit")
     print("")
 
@@ -223,26 +246,24 @@ def get_action(username):
 
 def do_action(action, username):
     global program_data
+    repeat = True
+    account_deleted = False
     if action == 1:
         # View an account password
         view_account_pass(username)
     elif action == 2:
         # Add a new account and password
         add_account(username)
-        pass
     elif action == 3:
         # Update an account's password
         update_account_pass(username) 
-        pass
     elif action == 4:
         # Remove an account and password
-        remove_account(username)
-        pass
-    else: 
-        return False
-    return True
-
-
+        account_deleted = remove_account(username)
+    else:
+        repeat = False
+   
+    return repeat, account_deleted
 
 def display_decaying_pass(password):
     # After the password is obtained, show it briefly and cross it out
@@ -276,20 +297,10 @@ def load_login_data():
     if os.path.exists(LOGIN_FILE):
         with open(LOGIN_FILE) as json_login_file:
             login_data = json.load(json_login_file)
-    elif os.path.exists(LOGIN_FILE + ".new"):
-        with open(LOGIN_FILE + ".new") as json_login_file:
-            login_data = json.load(json_login_file)
-    elif os.path.exists(LOGIN_FILE + ".bak"):
-        with open(LOGIN_FILE + ".bak") as json_login_file:
-            login_data = json.load(json_login_file)
-
-
-
 
 # Load the json data file and place it in the program_data dictionary 
 def load_data(username):
     global program_data
-    
     program_data_json = ""
 
     cipher = Fernet(derive_key(username))
@@ -300,49 +311,13 @@ def load_data(username):
             decrypted_json = cipher.decrypt(encrypted_json)
             program_data = json.loads(decrypted_json)
 
-    ## Decryption buffer size
-    #buffer_size = 500 * 1024 
-    ##f_ciph = io.BytesIO()
-    #f_dec = io.BytesIO()
-
-    ## Read the encrypted file
-    ## Decrypt it
-    ## Deserialize the json and place it in program_data
-
-    ## TODO: Problem: Somehow I'm corrupting the file either when writing it or reading it. 
-    #if os.path.exists(DATA_FILE):
-    #    with open(DATA_FILE, "rb") as encrypted_data_file:
-    #        encrypted_text = encrypted_data_file.read()
-    #        print(f"Raw text first: {encrypted_text}")
-    #        ctlen = sys.getsizeof(encrypted_text)
-    #        f_ciph = io.BytesIO(encrypted_text)
-    #        #f_ciph = io.BytesIO(b"stuff")
-    #        print(f"Ciphertext: {str(f_ciph.getvalue())}")
-    #        f_ciph.seek(0)
-    #        pyAesCrypt.decryptStream(f_ciph, f_dec, master_pass, buffer_size, ctlen)
-    #        program_data_json = str(f_dec.getvalue())
-    #        program_data = json.loads(program_data_json)
-
-    ## Load the encrypted file
-    #if os.path.exists(DATA_FILE):
-    #    with open(DATA_FILE) as encrypted_data_file:
-    #        
-    #        program_data = json.load(json_data_file)
-    #elif os.path.exists(DATA_FILE + ".new"):
-    #    with open(DATA_FILE + ".new") as json_data_file:
-    #        program_data = json.load(json_data_file)
-    #elif os.path.exists(DATA_FILE + ".bak"):
-    #    with open(DATA_FILE + ".bak") as json_data_file:
-    #        program_data = json.load(json_data_file)
-
-
 def derive_key(username):
     # The password has to be run through a key derivation function 
     # in order to be used with Fernet
     kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=login_data[username][1], # The salt is stored here
+            salt=login_data[username][1].encode(), # The salt is stored here
             iterations=100000,
             backend=default_backend()
             )
@@ -350,73 +325,30 @@ def derive_key(username):
     return key
 
 
-def save_data(username):
+def save_data(username, delete_account=False):
     global program_data
     global login_data
 
-    # Convert the program_data to json
-    prog_content = json.dumps(program_data)
-   
-    print("SAVING DATA")
-    
-    # Encrypt the prog_content json string
-    key = derive_key(username) 
-    f = Fernet(key)    
-    encrypted_data = f.encrypt(prog_content.encode())
+    if delete_account == False:
+        # Convert the program_data to json
+        prog_content = json.dumps(program_data)
+        # Encrypt the prog_content json string
+        key = derive_key(username) 
+        f = Fernet(key)    
+        encrypted_data = f.encrypt(prog_content.encode())
 
-    # Carefully overwrite the old data. This is so it can be preserved if
-    # the program closes before saved.
-    
-    # Program Data
-    # Write the new data to a .new file to preserve the old 
-    
-    # Encryption/decription buffer size in bytes
-   # buffer_size = 500 * 1024 # TODO: Set this more intelligently...
-
-    # Input plaintext binary stream
-   # f_in = io.BytesIO(prog_content.encode())
-    
-    # Initialize ciphertext binary stream
-   # f_ciph = io.BytesIO()
-
-    # Encrypt stream
-   # pyAesCrypt.encryptStream(f_in, f_ciph, master_pass, buffer_size)
-   
-    # TODO: Somehow I'm corrupting the file either here or when I load it.
-    # Write the encrypted data to the file
-    f = open("." + username + DATA_FILE, "wb")
-    #f.write(str(f_ciph.getvalue()))   
-    #f.write(f_ciph.getvalue())   
-    f.write(encrypted_data)
+        # Write the encrypted data to the file
+        f = open("." + username + DATA_FILE, "wb")
+        f.write(encrypted_data)
+    else:
+        if os.path.exists("." + username + DATA_FILE):
+            os.remove("." + username + DATA_FILE)
 
     # Login Data
-    # Convert the login data to json
-    print("About to json dump!")
-    
-    #with open(LOGIN_FILE + ".new", "w") as fp: 
-    #    json.dump(login_data, fp)
-    #print("Did it!")
-  
-    # TODO: Because the hash is stored as bytes, json can't serialize it.
-    # Maybe I could work around this somehow
-    login_conent = json.dumps(login_data)
-
-
-    # Write the new data to a .new file to preserve the old 
-    f = open(LOGIN_FILE + ".new", "w")
+    # Convert the login data to json and write to file
+    login_content = json.dumps(login_data)
+    f = open(LOGIN_FILE, "w")
     f.write(login_content)   
-
-    # Rename the old file as a backup
-    #if os.path.exists(LOGIN_FILE):
-    #    os.rename(LOGIN_FILE, LOGIN_FILE + ".bak")
-
-    # Make the .new file as the new base
-    #os.rename(LOGIN_FILE + ".new", LOGIN_FILE)
-
-    # Remove the backup
-    #if os.path.exists(LOGIN_FILE + ".bak"):
-    #    os.remove(LOGIN_FILE + ".bak")
-
 
 
 # Display password accounts
@@ -427,59 +359,32 @@ def main():
     load_login_data() 
     username = prompt_credentials()
     load_data(username)
+   
+    # This is so if the only action done is "Exit" their username will be saved.
+    save_data(username)
 
     # Update the program data for new users. Nothing will change
-    # for an existing user
-    # If this is the first user.
     if len(list(program_data)) == 0:
         program_data[username] = {"this_program": master_pass} 
     # If not the first user, but is a new user 
-    elif key not in program_data.keys():
+    elif username not in program_data.keys():
         program_data[username] = {"this_program": master_pass}
     
     print(f"Welcome, {username}.") 
 
     repeat = True
-    while repeat:
+    delete_account = False
+    while repeat == True and delete_account == False:
         print("********************************************************")
         action = get_action(username)
 
         # Perform the action
-        repeat = do_action(action, username)
-        save_data(username)
+        repeat, delete_account = do_action(action, username)
+        save_data(username, delete_account=delete_account)
 
     print("")
     print("Locking up...")
-    print("Until next time!")
 
 if __name__ == '__main__':
     main()
-
-
-# I need to generate a random salt, add it to the password, and hash it.
-# The hashed password + salt is what I need to store along with the salt.
-# I could store this like salt:hasedPasswordPlusSalt
-
-# When logging in, I need to grab the stored salt for that username,
-# add it to the inputted password, hash it, and see if it matches the stored
-# hash. If so, access can be granted.
-
-# How do I generate the random salt?
-# What should I use for the hasing? bcrypt?
-
-# The next question is how do I secure all of the other passwords that are
-# stored for each user? A hash isn't something that can be undone. It can just
-# take something, hash it, and then see if the hash matches what's stored.
-# In this program, however, I need to be able to undo however the other 
-# passwords are stored. How do I do that securely?
-
-# I think I need a file for usernames and master passwords.
-# I think I need a separate file for all accounts and passwords for each user.
-# Logging in will use the first password. If it checks out, I can use that
-# inputted password as the key to unencrypt the accounts/passwords file.
-
-
-
-
-
 
