@@ -13,6 +13,7 @@
 import getpass
 import os.path
 import sys
+import signal
 import random
 import time
 import threading
@@ -69,6 +70,13 @@ def handle_timeout():
 timeout_secs = 120
 timer = threading.Timer(timeout_secs, handle_timeout)
 timer.start()
+
+def signal_handler(sig, frame):
+    # Clean up the threads on Ctrl+c 
+    timer.cancel()
+    quit() 
+
+signal.signal(signal.SIGINT, signal_handler)
 
 # This is used whenever there is user input to restart the timer
 def reset_timer():
@@ -414,9 +422,10 @@ def main():
         # Perform the action
         repeat, delete_account = do_action(action, username)
         save_data(username, delete_account=delete_account)
-
+    
     print("")
     print("Locking up...")
+    timer.cancel()
 
 if __name__ == '__main__':
     main()
