@@ -7,6 +7,21 @@ recovery function of a website ends up being the password solution. This is
 annoying. This is a program that helps remedy this by securely storing them
 for lookup. This is a command line application.
 
+## Using Keyhole
+
+Keyhole can be used as a raw python application or as a containerized 
+application. To run the raw python application, just run `python keyhole.py`.
+This, of course, is after installing the dependencies listed below.
+
+To run the containerized application, first build the container in the cloned
+directory:
+* `docker build . -t keyhole:0.1.1`
+
+Once the container is built, it can be run with the following command:
+* `docker run --rm -ti -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.1`
+
+This will mount a volume so the data can be persisted.
+
 ## Features
 
 * Multiple user logins
