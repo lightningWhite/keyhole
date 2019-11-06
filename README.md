@@ -49,15 +49,21 @@ salt used for hashing it.
 * The usernames are not encrypted. Anyone can see the username associated
 with the program.
 
-Use this program at your own risk. It is provided "as is" and no one will
-accept responsibility or liability for anything that adversely arises from 
-its use.
+Use this program at your own risk. It is provided "as is" and no one 
+is responsible or liable for anything that adversely arises from its use.
 
 This is not yet licensed.
 
-## Dependencies
+## Project Setup
+Setup a virtual environment: 
+* Install python3-venv package: `sudo apt install python3-venv`
+* Setup python virtual environment: `python -m venv keyhole`
+* Activate virtual environment: source keyhole/bin/activate
 
-* bcrypt
-* cryptography
-* json
+### Dependencies
+Make sure the dependencies of bcrypt are installed: 
+`sudo apt-get install build-essential libffi-dev python-dev`
+
+Install bcrypt: `pip3 install bcrypt`
+Install cryptography: `pip3 install cryptography`
 
