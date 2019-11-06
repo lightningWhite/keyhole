@@ -1,19 +1,21 @@
 # Keyhole
-# This is a program to securely manage the many passwords I have to remember.
-# Where every account I use online needs to have a different password, it's
+# This is a program to securely manage the many passwords peopple have to 
+# remember. Where every account online needs to have a different password, it's
 # nearly impossible to remember them all. It almost seems like the password
-# recovery function of a website ends up being my password solution. I think
-# that's kind of silly. This is a program that will help me remedy this.
+# recovery function of a website ends up being the password solution. This is 
+# annoying. This is a program that helps remedy this by securely storying
+# them for lookup..
+#
 # Written by Daniel Hornberger
 # 10/18/2019
-# v0.1
+# Version 0.1.1
 
 import getpass
 import os.path
-import mmap
 import sys
 import random
 import time
+import threading
 import json
 import bcrypt
 import base64
@@ -59,6 +61,21 @@ login_data = {}
 
 master_pass = ""
 
+def handle_timeout():
+    print("\n\nLocking up due to inactivity...")
+    os._exit(os.EX_OK)
+
+# Global timer to close the program if there's no user input for two minutes
+timeout_secs = 120
+timer = threading.Timer(timeout_secs, handle_timeout)
+timer.start()
+
+# This is used whenever there is user input to restart the timer
+def reset_timer():
+    global timer
+    timer.cancel()
+    timer = threading.Timer(timeout_secs, handle_timeout)
+    timer.start()
 
 def hash_password(password):
     # Add a cost factor by slowing down the hashing. This increases security.
@@ -77,7 +94,9 @@ def prompt_password(new=False, username=""):
     if new == True:
         while True:
             password = getpass.getpass(prompt='Enter a new password: ', stream=None)
+            reset_timer()
             conf_pass = getpass.getpass(prompt='Confirm password: ', stream=None)
+            reset_timer()
             print("")
             if len(password) > 0 and password == conf_pass:
                 break
@@ -87,6 +106,7 @@ def prompt_password(new=False, username=""):
         return password
     else:
         password = getpass.getpass()
+        reset_timer()
 
         # Check if the hash of the inputted password matches the saved hash for the user
         if bcrypt.checkpw(password.encode(), login_data[username][0].encode()) != True:
@@ -103,12 +123,15 @@ def create_user(username=""):
     global master_pass
 
     do_create = input("Username doesn't exist. Create one? [Y/n] ")
+    reset_timer()
     if do_create == 'Y' or do_create == 'y':
         ans = input(f"Is the name '{username}' okay? [Y/n] ")
+        reset_timer()
         if ans == 'n' or ans == 'N':
             valid = 0
             while valid == 0:
                 username = input("Enter a new username: ")
+                reset_timer()
                 # Check if user exists
                 if key in login_data.keys():
                     print("That username already exists.")
@@ -131,6 +154,8 @@ def prompt_credentials():
     global login_data
     global master_pass
     name = input("Username: ")
+    reset_timer()
+
     if len(name) == 0:
         print("Invalid username.")
         exit()
@@ -158,6 +183,7 @@ def select_account_with_prompt(username, prompt):
     invalid = True
     while invalid:
         selection = input(prompt)
+        reset_timer()
         if selection.isdigit() == False:
             print("Invalid selection.")
         elif int(selection) < 1 or int(selection) > num_options:
@@ -177,6 +203,7 @@ def add_account(username):
     global program_data
     print("")
     account = input("Enter the name of the account: ")
+    reset_timer()
     password = prompt_password(new=True)
     program_data[username][account] = password 
     print("Account added!")
@@ -208,6 +235,7 @@ def remove_account(username):
     # Delete account in this program
     if acnt_index == 0:
         ans = input("This will delete your account in this program and remove all saved information. Proceed? [Y/n] ")
+        reset_timer()
         if ans == "Y" or ans == "y":
             print("Deleting your account and all information associated with it...")
             del program_data[username]
@@ -244,6 +272,7 @@ def get_action(username):
     invalid = True
     while invalid:
         selection = input("Enter the number of your selection: ")
+        reset_timer()
         if selection.isdigit() == False:
             print("Invalid selection.")
         elif int(selection) < 1 or int(selection) > num_options:
@@ -358,10 +387,6 @@ def save_data(username, delete_account=False):
     f = open(LOGIN_FILE, "w")
     f.write(login_content)   
 
-
-# Display password accounts
-# Prompt user for which one to return the password for
-# TODO: I need to have a timeout if there isn't user input for a bit
 def main():
     # The saved program data file will be loaded into this on startup as well.
     load_login_data() 
