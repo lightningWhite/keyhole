@@ -1,10 +1,10 @@
 # Keyhole
-# This is a program to securely manage the many passwords peopple have to 
+# This is a program to securely manage the many passwords people have to 
 # remember. Where every account online needs to have a different password, it's
 # nearly impossible to remember them all. It almost seems like the password
 # recovery function of a website ends up being the password solution. This is 
-# annoying. This is a program that helps remedy this by securely storying
-# them for lookup..
+# annoying. This is a program that helps remedy this by securely storing
+# them for lookup.
 #
 # Written by Daniel Hornberger
 # 10/18/2019
