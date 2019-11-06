@@ -40,8 +40,16 @@ print("")
 print("")
 
 # The file containing the saved usernames, accounts, and passwords
-DATA_FILE = "-data"
-LOGIN_FILE = ".login.json"
+DATA_PATH = ".keyhole/"
+DATA_FILE = DATA_PATH + ".data-"
+LOGIN_FILE = DATA_PATH + ".login.json"
+
+if not os.path.exists(DATA_PATH):
+    try:
+        os.mkdir(DATA_PATH)
+    except OSError:
+        print("Failed to create program data directory. Exiting...")
+        exit()
 
 # program_data maps usernames to dictionaries mapping accounts to encrypted passwords
 program_data = {}
@@ -285,7 +293,7 @@ def display_decaying_pass(password):
     
        decayed_pass = "".join(temp)
        print(decayed_pass, end='\r')
-       time.sleep(1/(i+2))
+       time.sleep(1/((i+1)*2))
     
        # Clear the line in the terminal
        sys.stdout.write("\033[K")
@@ -305,8 +313,8 @@ def load_data(username):
 
     cipher = Fernet(derive_key(username))
 
-    if os.path.exists("." + username + DATA_FILE):
-        with open("." + username + DATA_FILE, "rb") as encrypted_data_file:
+    if os.path.exists(DATA_FILE + username):
+        with open(DATA_FILE + username, "rb") as encrypted_data_file:
             encrypted_json = encrypted_data_file.read()
             decrypted_json = cipher.decrypt(encrypted_json)
             program_data = json.loads(decrypted_json)
@@ -338,11 +346,11 @@ def save_data(username, delete_account=False):
         encrypted_data = f.encrypt(prog_content.encode())
 
         # Write the encrypted data to the file
-        f = open("." + username + DATA_FILE, "wb")
+        f = open(DATA_FILE + username, "wb")
         f.write(encrypted_data)
     else:
-        if os.path.exists("." + username + DATA_FILE):
-            os.remove("." + username + DATA_FILE)
+        if os.path.exists(DATA_FILE + username):
+            os.remove(DATA_FILE + username)
 
     # Login Data
     # Convert the login data to json and write to file
