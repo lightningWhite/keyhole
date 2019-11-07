@@ -22,6 +22,16 @@ Once the container is built, it can be run with the following command:
 
 This will mount a volume so the data can be persisted.
 
+A simple bash script is provided that runs this Docker command for ease of use.
+After cloning, it may be necessary to add executable privileges to it:
+`chmod +x keyhole.sh`.
+
+This script could also be copied to `/bin/` and renamed to `keyhole`. This 
+would allow the command `keyhole` to be run in any terminal as if it was
+a native linux command. Sudo privileges are needed to do this. Note that
+Docker must be installed for this script to work. Without Docker, the raw
+python script must be used with its dependencies installed.
+
 ## Features
 
 * Multiple user logins
