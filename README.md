@@ -92,3 +92,8 @@ Make sure the dependencies of bcrypt are installed:
 Install bcrypt: `pip3 install bcrypt`
 Install cryptography: `pip3 install cryptography`
 
+## TODOs
+
+* The `keyhole` application currently doesn't handle signals correctly. When
+  attempting to stop the application by running `docker stop ...`, it gets
+  force killed after 10 seconds. This should be fixed.
