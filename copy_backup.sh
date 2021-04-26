@@ -4,4 +4,4 @@
 
 docker run --rm -ti -d --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ --entrypoint sh keyhole:0.1.1
 docker cp keyhole:/usr/src/app/.keyhole .
-docker stop keyhole
+docker stop keyhole -t0
