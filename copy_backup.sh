@@ -6,7 +6,7 @@
 podman -v
 if [ $? == 0 ]
 then
-  podman run --rm -ti -d --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ --entrypoint sh keyhole:0.1.1
+  podman run --rm -ti -d --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ --entrypoint sh keyhole:0.1.2
   podman cp keyhole:/usr/src/app/.keyhole .
   podman stop keyhole -t0
   echo ""
@@ -19,7 +19,7 @@ fi
 docker -v
 if [ $? == 0 ]
 then
-  docker run --rm -ti -d --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ --entrypoint sh keyhole:0.1.1
+  docker run --rm -ti -d --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ --entrypoint sh keyhole:0.1.2
   docker cp keyhole:/usr/src/app/.keyhole .
   docker stop keyhole -t0
 else

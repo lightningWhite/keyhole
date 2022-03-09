@@ -5,7 +5,7 @@
 podman -v
 if [ $? == 0 ]
 then
-  podman run --rm -ti --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.1
+  podman run --rm -ti --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.2
   echo ""
   exit 0
 else
@@ -16,7 +16,7 @@ fi
 docker -v
 if [ $? == 0 ]
 then
-  docker run --rm -ti --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.1
+  docker run --rm -ti --name keyhole -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.2
 else
   echo "Docker is not installed either. Exiting." 
   echo ""
