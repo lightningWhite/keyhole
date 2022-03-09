@@ -15,10 +15,14 @@ This, of course, is after installing the dependencies listed below.
 
 To run the containerized application, first build the container in the cloned
 directory:
-* `docker build . -t keyhole:0.1.1`
+* ./build.sh
+* Alternatively:
+  * `docker build . -t keyhole:0.1.1`
 
 Once the container is built, it can be run with the following command:
-* `docker run --rm -ti -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.1`
+* ./keyhole.sh
+* Alternatively:
+  * `docker run --rm -ti -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.1`
 
 This will mount a volume so the data can be persisted.
 
@@ -33,6 +37,10 @@ either Docker or Podman must be installed for this script to work. Without
 Docker or Python, the raw python script must be used with its dependencies
 installed.
 
+The installation (copying the script to /bin) can be performed by running
+the following:
+* ./install.sh
+
 ## Features
 
 * Multiple user logins
@@ -43,7 +51,9 @@ are encrypted using the user's primary password.
 * Once logged in, passwords of accounts can be displayed for two seconds. 
 Once the two seconds have passed, the password decays on the screen until
 it is overwritten.
-
+* A script to backup the encrypted password file so it can be placed in another
+  directory
+* A script to restore a backup file to the container volume
 
 ## Security Features 
 
