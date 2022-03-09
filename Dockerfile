@@ -5,7 +5,7 @@ FROM python:3-alpine
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt keyhole.py ./
+COPY requirements.txt ./
 
 # Extra packages are needed for building bcrypt and cryptography 
 RUN apk --no-cache add --virtual \
@@ -18,6 +18,9 @@ RUN apk --no-cache add --virtual \
     pip install --no-cache-dir -r requirements.txt && \
     # Remove the installed packages that aren't needed anymore 
     apk del build-deps
+
+# Place the binary here for faster container updates
+COPY keyhole.py ./
 
 CMD ["python", "./keyhole.py"]
 

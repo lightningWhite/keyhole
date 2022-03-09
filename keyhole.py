@@ -141,13 +141,13 @@ def create_user(username=""):
                 username = input("Enter a new username: ")
                 reset_timer()
                 # Check if user exists
-                if key in login_data.keys():
+                if username in login_data.keys():
                     print("That username already exists.")
                 else:
                     valid = 1
     else:
         print("Exiting...")
-        exit()
+        os._exit(os.EX_OK)
 
     password = prompt_password(new=True)
     master_pass = password
