@@ -17,12 +17,12 @@ To run the containerized application, first build the container in the cloned
 directory:
 * ./build.sh
 * Alternatively:
-  * `docker build . -t keyhole:0.1.2`
+  * `docker build . -t keyhole:0.1.3`
 
 Once the container is built, it can be run with the following command:
 * ./keyhole.sh
 * Alternatively:
-  * `docker run --rm -ti -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.2`
+  * `docker run --rm -ti -v keyhole_vol:/usr/src/app/.keyhole/ keyhole:0.1.3`
 
 This will mount a volume so the data can be persisted.
 

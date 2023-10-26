@@ -15,6 +15,7 @@ RUN apk --no-cache add --virtual \
     libffi-dev \ 
     # For cryptography 
     openssl-dev && \
+    pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     # Remove the installed packages that aren't needed anymore 
     apk del build-deps

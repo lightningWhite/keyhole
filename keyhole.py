@@ -8,7 +8,7 @@
 #
 # Written by Daniel Hornberger
 # 10/18/2019
-# Version 0.1.2
+# Version 0.1.3
 
 import getpass
 import os.path
